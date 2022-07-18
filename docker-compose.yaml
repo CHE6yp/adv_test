@@ -1,0 +1,48 @@
+version: '3.9'
+
+services:
+    db:
+        image: postgres:alpine
+        ports:
+            - "5469:5432"
+        volumes:
+            - ./docker-compose/data/postgres:/var/lib/postgres
+        environment:
+            POSTGRES_USER: symfony
+            POSTGRES_PASSWORD: symfony
+            POSTGRES_DB: symfony
+            PGDATA: /var/lib/postgres
+        networks:
+            - adv
+
+    php-fpm:
+        build: docker-compose/php-fpm
+        image: adv/backend
+        ports:
+            - "9100:9001"
+        volumes:
+            - ./symfony:/usr/src/symfony
+            - ~/.ssh:/root/.ssh
+        environment:
+            PHP_IDE_CONFIG: "serverName=adv.localhost"
+            COMPOSER_HOME: "/usr/src/.composer"
+        networks:
+            - adv
+        links:
+            - db
+
+    nginx:
+        build: ./docker-compose/nginx
+        ports:
+            - "8080:80"
+        volumes:
+            - ./docker-compose/logs/nginx:/var/log/nginx:cached
+            - ./symfony:/usr/src/symfony:cached
+        depends_on:
+            - php-fpm
+        networks:
+            - adv
+
+networks:
+    adv:
+        external: true
